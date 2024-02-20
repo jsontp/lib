@@ -1,6 +1,7 @@
 mod shared;
+mod server;
 
-
+use std::io::{Read, Write};
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
@@ -10,9 +11,14 @@ pub fn add(left: usize, right: usize) -> usize {
 mod tests {
     use super::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    #[tokio::test]
+    async fn test_server() {
+            let server = server::Server::new("hey".to_string(), "localhost".to_string(), 8080);
+
+            server.start();
+
+        println!("hello!");
+
+
     }
 }
