@@ -8,14 +8,13 @@ pub mod prelude {
     pub use crate::shared::*;
     pub use crate::server::*;
 
-    pub use serde_json::Value;
+pub fn add(left: usize, right: usize) -> usize {
+    left + right
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use prelude::*;
 
     #[tokio::test]
     async fn test_server() {
@@ -35,6 +34,9 @@ mod tests {
             );
             
             server.start();
+
+        println!("hello!");
+
 
     }
 }
