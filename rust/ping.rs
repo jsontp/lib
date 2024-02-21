@@ -7,7 +7,7 @@ fn main() {
     {
         "jsontp": "1.0",
         "type": "request",
-        "resource": "/path/to/resource",
+        "resource": "/",
         "method": "GET",
     
         "headers": {
