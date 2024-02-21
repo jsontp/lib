@@ -1,4 +1,5 @@
-use crate::shared::defs::*;
+use crate::shared::*;
+use crate::status::*;
 
 use std::collections::HashMap;
 
@@ -6,31 +7,49 @@ use serde_json::{Value, self};
 
 use std::io::{Read, Write};
 
-#[derive(Debug)]
-pub struct Response {
-    body: HashMap<String, Value>,
-    status: u16,
-    cookies: HashMap<String, String>,
-    resource: String,
+
+impl Default for Language {
+    fn default() -> Self {
+        Language {
+            lang: Some("en".to_string()),
+            locale: Some("US".to_string()),
+        }
+    }
+}
+
+impl ToString for Language {
+    fn to_string(&self) -> String {
+        match self.lang.clone() {
+            Some(lang) => match self.locale.clone() {
+                Some(locale) => format!("{}-{}", lang, locale),
+                None => format!("{}-{}", lang, lang.to_ascii_uppercase()),
+            },
+            None => "en-US".to_string(),
+        }
+    }
 }
 
 impl Response {
-    pub fn new(
-        body: HashMap<String, Value>,
+    pub(crate) fn new_manual(
+        body: Body,
         status: u16,
-        cookies: HashMap<String, String>,
-        resource: String
+        cookies: Option<HashMap<String, String>>,
+        resource: String,
+        language: Language,
+        headers: Option<HashMap<String, Value>>,
     ) -> Response {
         Response {
             body,
             status,
             cookies,
             resource,
+            language,
+            headers,
         }
     }
-    
-    pub fn validate(&self) -> Result<(), String> {
-        if self.body.is_empty() {
+
+    pub(crate) fn validate(&self) -> Result<(), String> {
+        if self.body.content.is_empty() {
             return Err("Body is empty".to_string());
         }
 
@@ -59,21 +78,36 @@ impl Response {
         Ok(())
     }
 
-    fn to_jsontp_response(&self) -> JsontpResponse {
+    pub(crate) fn to_jsontp_response(&self) -> JsontpResponse {
         let validation = self.validate();
 
         let status = match validation {
-            Ok(_) => Status {
-                code: self.status,
-                formal_message: "OK".to_string(),
-                human_message: "Request was successful".to_string(),
-            },
+            Ok(_) => categorise(self.status),
             Err(message) => Status {
                 code: 400,
                 formal_message: "Bad Request".to_string(),
                 human_message: message,
             },
         };
+
+        let mut headers: HashMap<String, Value> = self.headers.clone().unwrap_or(HashMap::new());
+
+        // date must be in the format %Y-%m-%dT%H:%M:%SZ%z, using chrono crate
+        let now = chrono::Utc::now();
+
+        let formatted = now.format("%Y-%m-%dT%H:%M:%SZ%z").to_string();
+
+        headers.insert("date".to_string(), Value::String(formatted));
+
+        // now insert language type, by default it is en-US
+        headers.insert("language".to_string(), Value::String(self.language.to_string()));
+
+        // now check cookies
+        if let Some(cookies) = self.cookies.clone() {
+            for (key, value) in cookies {
+                headers.insert(key, Value::String(value));
+            }
+        }
 
         JsontpResponse {
             jsontp: "1.0-rc1".to_string(),
@@ -101,7 +135,9 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(name: String, host: String, port: u16) -> Server {
+    /// instantiates a new server, with given name, host and port
+    pub fn new<T, U>(name: T, host: U, port: u16) -> Server 
+    where T: ToString, U: ToString {
         Server {
             name,
             host,
@@ -112,14 +148,17 @@ impl Server {
         }
     }
 
-    pub fn route(&mut self, route: String, handler: fn(JsontpRequest) -> Response) {
-        self.route_handlers.insert(route, handler);
+    /// adds a route to the server, with the given handler
+    pub fn route<T: ToString>(&mut self, route: T, handler: fn(JsontpRequest) -> Response) {
+        self.route_handlers.insert(route.to_string(), handler);
     }
 
-    pub fn add_error_handler(&mut self, code: u16, handler: fn(JsontpRequest) -> Response) {
+    /// adds an error handler to the server, with the given code
+    pub fn error(&mut self, code: u16, handler: fn(JsontpRequest) -> Response) {
         self.error_handlers.insert(code, handler);
     }
 
+    /// starts the server on the given host and port
     pub fn start(self) {
         let listener = std::net::TcpListener::bind(format!("{}:{}", self.host, self.port)).unwrap();
 
@@ -142,7 +181,6 @@ impl Server {
 
                 let mut buf_reader = std::io::BufReader::new(&stream);
 
-
                 loop {
                     let mut buffer = [0; 1024];
                     let bytes_read = buf_reader.read(&mut buffer).unwrap();
@@ -153,7 +191,6 @@ impl Server {
                         break;
                     }   
                 }
-
 
                 println!("{}", request_string);
 

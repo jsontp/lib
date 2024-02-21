@@ -1,7 +1,12 @@
-mod shared;
-mod server;
+pub mod shared;
+pub mod server;
+mod status;
 
-use std::io::{Read, Write};
+/// The prelude module re-exports the most commonly used items in this crate.
+/// It should be imported in all modules that use the jsontp crate.
+pub mod prelude {
+    pub use crate::shared::*;
+    pub use crate::server::*;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
@@ -13,8 +18,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_server() {
-            let server = server::Server::new("hey".to_string(), "localhost".to_string(), 8080);
+            let mut server = server::Server::new("hey", "localhost", 8080);
 
+            server.route(
+                "/".to_string(),
+                |req: JsontpRequest| {                    
+                    req.to_response(
+                        Body::new("Hello, world!", "identity", None),
+                        200,
+                        None,
+                        Language::default(),
+                        None
+                    )
+                }
+            );
+            
             server.start();
 
         println!("hello!");
