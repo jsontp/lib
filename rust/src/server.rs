@@ -41,15 +41,17 @@ pub struct Response {
     resource: String,
 
     language: Language,
+    headers: Option<HashMap<String, Value>>,
 }
 
 impl Response {
-    pub fn new_manual(
+    pub(crate) fn new_manual(
         body: Body,
         status: u16,
         cookies: Option<HashMap<String, String>>,
         resource: String,
         language: Language,
+        headers: Option<HashMap<String, Value>>,
     ) -> Response {
         Response {
             body,
@@ -57,10 +59,11 @@ impl Response {
             cookies,
             resource,
             language,
+            headers,
         }
     }
 
-    pub fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), String> {
         if self.body.content.is_empty() {
             return Err("Body is empty".to_string());
         }
@@ -82,7 +85,7 @@ impl Response {
         Ok(())
     }
 
-    fn to_jsontp_response(&self) -> JsontpResponse {
+    pub(crate) fn to_jsontp_response(&self) -> JsontpResponse {
         let validation = self.validate();
 
         let status = match validation {
@@ -98,7 +101,7 @@ impl Response {
             },
         };
 
-        let mut headers: HashMap<String, Value> = HashMap::new();
+        let mut headers: HashMap<String, Value> = self.headers.clone().unwrap_or(HashMap::new());
 
         // date must be in the format %Y-%m-%dT%H:%M:%SZ%z, using chrono crate
         let now = chrono::Utc::now();
@@ -155,7 +158,7 @@ impl Server {
         self.route_handlers.insert(route.to_string(), handler);
     }
 
-    pub fn add_error_handler(&mut self, code: u16, handler: fn(JsontpRequest) -> Response) {
+    pub fn error(&mut self, code: u16, handler: fn(JsontpRequest) -> Response) {
         self.error_handlers.insert(code, handler);
     }
 

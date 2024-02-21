@@ -16,15 +16,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_server() {
-            let mut server = server::Server::new("hey".to_string(), "localhost".to_string(), 8080);
+            let mut server = server::Server::new("hey", "localhost", 8080);
 
             server.route(
                 "/".to_string(),
-                |req: JsontpRequest| {
-                    let mut headers = req.headers.clone();
-                    headers.insert("Content-Type".to_string(), Value::String("text/html".to_string()));
-                    let body = Body::new("<h1>Hello, world!</h1>".to_string(), "identity".to_string(), None);
-                    Response::new_manual(body, 200, None, "/".to_string(), Language::default())
+                |req: JsontpRequest| {                    
+                    req.to_response(
+                        Body::new("Hello, world!", "identity", None),
+                        200,
+                        None,
+                        Language::default(),
+                        None
+                    )
                 }
             );
             

@@ -99,13 +99,15 @@ impl JsontpRequest {
         status: u16,
         cookies: Option<HashMap<String, String>>,
         language: Language,
+        headers: Option<HashMap<String, Value>>,
     ) -> Response {
         Response::new_manual(
             body,
             status,
-            cookies,
+            cookies.map(|map| map.into_iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()),
             self.resource.clone(),
             language,
+            headers,
         )
     }
 }
