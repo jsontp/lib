@@ -7,25 +7,57 @@ use serde_json::{Value, self};
 use std::io::{Read, Write};
 
 #[derive(Debug)]
+pub struct Language {
+    lang: Option<String>,
+    locale: Option<String>,
+}
+
+impl Default for Language {
+    fn default() -> Self {
+        Language {
+            lang: Some("en".to_string()),
+            locale: Some("US".to_string()),
+        }
+    }
+}
+
+impl ToString for Language {
+    fn to_string(&self) -> String {
+        match self.lang.clone() {
+            Some(lang) => match self.locale.clone() {
+                Some(locale) => format!("{}-{}", lang, locale),
+                None => format!("{}-{}", lang, lang.to_ascii_uppercase()),
+            },
+            None => "en-US".to_string(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Response {
     body: HashMap<String, Value>,
     status: u16,
     cookies: HashMap<String, String>,
     resource: String,
+
+    language: Language,
 }
+
 
 impl Response {
     pub fn new(
         body: HashMap<String, Value>,
         status: u16,
         cookies: HashMap<String, String>,
-        resource: String
+        resource: String,
+        language: Language,
     ) -> Response {
         Response {
             body,
             status,
             cookies,
             resource,
+            language,
         }
     }
     
@@ -74,6 +106,19 @@ impl Response {
                 human_message: message,
             },
         };
+
+        let mut headers: HashMap<String, Value> = HashMap::new();
+
+        // date must be in the format %Y-%m-%dT%H:%M:%SZ%z, using chrono crate
+
+        let now = chrono::Utc::now();
+
+        let formatted = now.format("%Y-%m-%dT%H:%M:%SZ%z").to_string();
+
+        headers.insert("date".to_string(), Value::String(formatted));
+
+        // now insert language type, by default it is en-US
+        headers.insert("language".to_string(), Value::String(self.language.to_string()));
 
         JsontpResponse {
             jsontp: "1.0-rc1".to_string(),

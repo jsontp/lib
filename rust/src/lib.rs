@@ -1,5 +1,5 @@
-mod shared;
-mod server;
+pub mod shared;
+pub mod server;
 
 use std::io::{Read, Write};
 
