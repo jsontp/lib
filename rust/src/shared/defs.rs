@@ -3,29 +3,12 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::server::{Language, Response};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Body {
-    pub(crate) content: String,
-    pub(crate) encoding: String,
+#[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct Body {
+    pub(crate)  content: String,
+    pub(crate)  encoding: String,
     #[serde(flatten)]
-    pub(crate) other: HashMap<String, Value>,
-}
-
-impl Body {
-    pub fn new<T, U>(content: T, encoding: U, other: Option<HashMap<String, Value>>) -> Body 
-    where T: ToString, U: ToString {
-        Body {
-            content: content.to_string(),
-            encoding: encoding.to_string(),
-            other: match other {
-                Some(map) => map,
-                None => HashMap::new(),
-            },
-        }
-    }
-
+    pub(crate)  other: HashMap<String, Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,7 +23,7 @@ pub struct JsontpRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Status {
+pub(crate) struct Status {
     pub code: u16,
     #[serde(rename = "formal-message")]
     pub formal_message: String,
@@ -60,15 +43,17 @@ pub struct JsontpResponse {
 }
 
 impl JsontpRequest {
-    pub fn validate(&self) -> Result<(), String> {
+    fn from_json(json: &str) -> Result<JsontpRequest, serde_json::Error> {
+        serde_json::from_str(json)
+    }
+
+    fn validate(&self) -> Result<(), String> {
         for field in vec![
             self.jsontp.clone(),
             self.type_of_request.clone(),
             self.method.clone(),
             self.resource.clone(),
-        ]
-        .iter()
-        {
+        ].iter() {
             if field.is_empty() {
                 return Err(format!("Field {} is empty", field));
             }
@@ -91,21 +76,5 @@ impl JsontpRequest {
         }
 
         Ok(())
-    }
-
-    pub fn to_response(
-        &self,
-        body: Body,
-        status: u16,
-        cookies: Option<HashMap<String, String>>,
-        language: Language,
-    ) -> Response {
-        Response::new_manual(
-            body,
-            status,
-            cookies,
-            self.resource.clone(),
-            language,
-        )
     }
 }

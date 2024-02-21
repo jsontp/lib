@@ -1,0 +1,31 @@
+{
+  "name": "jsontp-lib",
+  "version": "0.0.1",
+  "description": "A JS/TS library for jsontp.",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-prod": "webpack --env mode=production --env optimize=true",
+    "build": "npm run build-prod",
+    "build-dev": "webpack --env mode=development --env optimize=false",
+    "watch": "webpack --watch --env mode=development --env optimize=false",
+    "build-server": "tsc src/server.ts --outDir dist/",
+    "run-server": "npm run build-server && node dist/server.js",
+    "watch-server": "nodemon -e js,ts --watch src --exec \"npm run run-server\"",
+    "prepublishOnly": "npm run build-prod && git pull && git commit -am 'Automatically commit' && git push"
+  },
+  "author": "@uimaxbai",
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^3.0.3",
+    "terser-webpack-plugin": "^5.3.10",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
+  },
+  "exports": {
+    "import": "./dist/accutime.min.mjs",
+    "require": "./dist/accutime.min.js"
+  }
+}

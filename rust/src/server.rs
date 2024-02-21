@@ -7,61 +7,30 @@ use serde_json::{Value, self};
 use std::io::{Read, Write};
 
 #[derive(Debug)]
-pub struct Language {
-    lang: Option<String>,
-    locale: Option<String>,
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Language {
-            lang: Some("en".to_string()),
-            locale: Some("US".to_string()),
-        }
-    }
-}
-
-impl ToString for Language {
-    fn to_string(&self) -> String {
-        match self.lang.clone() {
-            Some(lang) => match self.locale.clone() {
-                Some(locale) => format!("{}-{}", lang, locale),
-                None => format!("{}-{}", lang, lang.to_ascii_uppercase()),
-            },
-            None => "en-US".to_string(),
-        }
-    }
-}
-
-#[derive(Debug)]
 pub struct Response {
-    body: Body,
-    status: u16, // status code, not Status struct, as the messages should not be exposed to the user to change
-    cookies: Option<HashMap<String, String>>,
+    body: HashMap<String, Value>,
+    status: u16,
+    cookies: HashMap<String, String>,
     resource: String,
-
-    language: Language,
 }
 
 impl Response {
-    pub fn new_manual(
-        body: Body,
+    pub fn new(
+        body: HashMap<String, Value>,
         status: u16,
-        cookies: Option<HashMap<String, String>>,
-        resource: String,
-        language: Language,
+        cookies: HashMap<String, String>,
+        resource: String
     ) -> Response {
         Response {
             body,
             status,
             cookies,
             resource,
-            language,
         }
     }
-
+    
     pub fn validate(&self) -> Result<(), String> {
-        if self.body.content.is_empty() {
+        if self.body.is_empty() {
             return Err("Body is empty".to_string());
         }
 
@@ -69,14 +38,22 @@ impl Response {
             return Err("Status code is not in the range 100-599".to_string());
         }
 
-        if self.body.encoding.is_empty() {
+        if !self.body.contains_key("content"){
+            return Err("Body does not contain a content field".to_string());
+        }
+
+        if !self.body.contains_key("encoding"){
+            return Err("Body does not contain an encoding field".to_string());
+        }
+
+        if self.body.get("encoding").unwrap_or(&Value::Null).as_str().unwrap_or("").is_empty() {
             return Err("Body encoding is empty".to_string());
         }
 
         let allowed_encodings = vec!["gzip", "deflate", "br", "identity"];
 
-        if !allowed_encodings.contains(&self.body.encoding.as_str()) {
-            return Err(format!("Encoding {} is not allowed", self.body.encoding));
+        if !allowed_encodings.contains(&self.body.get("encoding").unwrap_or(&Value::Null).as_str().unwrap_or("".to_string().as_str())) {
+            return Err("Body encoding is not allowed".to_string());
         }
 
         Ok(())
@@ -92,38 +69,23 @@ impl Response {
                 human_message: "Request was successful".to_string(),
             },
             Err(message) => Status {
-                code: 500,
-                formal_message: "Internal Server Error".to_string(),
-                human_message: format!("Route handler failed: {}", message),
+                code: 400,
+                formal_message: "Bad Request".to_string(),
+                human_message: message,
             },
         };
-
-        let mut headers: HashMap<String, Value> = HashMap::new();
-
-        // date must be in the format %Y-%m-%dT%H:%M:%SZ%z, using chrono crate
-        let now = chrono::Utc::now();
-
-        let formatted = now.format("%Y-%m-%dT%H:%M:%SZ%z").to_string();
-
-        headers.insert("date".to_string(), Value::String(formatted));
-
-        // now insert language type, by default it is en-US
-        headers.insert("language".to_string(), Value::String(self.language.to_string()));
-
-        // now check cookies
-        if let Some(cookies) = self.cookies.clone() {
-            for (key, value) in cookies {
-                headers.insert(key, Value::String(value));
-            }
-        }
 
         JsontpResponse {
             jsontp: "1.0-rc1".to_string(),
             type_of_response: "response".to_string(),
             status,
             resource: self.resource.clone(),
-            headers: headers,
-            body: self.body.clone(),
+            headers: HashMap::new(),
+            body: Body {
+                content: self.body.get("content").unwrap().clone().to_string(),
+                encoding: self.body.get("encoding").unwrap().clone().to_string(),
+                other: HashMap::new(),
+            },
         }
     }
 }
@@ -139,11 +101,10 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new<T, U>(name: T, host: U, port: u16) -> Server 
-    where T: ToString, U: ToString {
+    pub fn new(name: String, host: String, port: u16) -> Server {
         Server {
-            name: name.to_string(),
-            host: host.to_string(),
+            name,
+            host,
             version: "1.0-rc1".to_string(),
             port,
             route_handlers: HashMap::new(),
@@ -151,8 +112,8 @@ impl Server {
         }
     }
 
-    pub fn route<T: ToString>(&mut self, route: T, handler: fn(JsontpRequest) -> Response) {
-        self.route_handlers.insert(route.to_string(), handler);
+    pub fn route(&mut self, route: String, handler: fn(JsontpRequest) -> Response) {
+        self.route_handlers.insert(route, handler);
     }
 
     pub fn add_error_handler(&mut self, code: u16, handler: fn(JsontpRequest) -> Response) {
@@ -198,7 +159,7 @@ impl Server {
 
                 let request: JsontpRequest = serde_json::from_str(&request_string).unwrap();
 
-                let response = match server.route_handlers.get(&request.resource) {
+                let mut response = match server.route_handlers.get(&request.resource) {
                     Some(handler) => handler(request).to_jsontp_response(),
                     None => JsontpResponse {
                         jsontp: "1.0-rc1".to_string(),
