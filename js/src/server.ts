@@ -33,6 +33,7 @@ const handleConnection = conn => {
             try {
                 var request = JSON.parse(data);
                 console.log(request);
+
                 if (request.type === undefined) {
                     throw new Error("A request type is required.");
                 }
@@ -45,6 +46,11 @@ const handleConnection = conn => {
                 if (request.body.encoding === undefined) {
                     throw new Error("A body encoding is required. Use 'identity' if unsure.");
                 }
+                if (request.resource === undefined) {
+                    throw new Error("A resource is required.");
+                }
+
+                
             }
             catch (err) {
                 throw new Error('JSON data could not be parsed');
