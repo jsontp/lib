@@ -1,8 +1,11 @@
 pub mod shared;
 pub mod server;
+mod status;
 
+/// The prelude module re-exports the most commonly used items in this crate.
+/// It should be imported in all modules that use the jsontp crate.
 pub mod prelude {
-    pub use crate::shared::defs::*;
+    pub use crate::shared::*;
     pub use crate::server::*;
 
     pub use serde_json::Value;

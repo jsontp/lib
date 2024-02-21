@@ -11,7 +11,8 @@ fn main() {
         "method": "GET",
     
         "headers": {
-            "key1": "value1"
+            "key1": "value1",
+            "accept-language": "de-DE"
         },
     
         "body": {

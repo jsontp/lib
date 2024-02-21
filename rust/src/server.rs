@@ -1,4 +1,5 @@
-use crate::shared::defs::*;
+use crate::shared::*;
+use crate::status::*;
 
 use std::collections::HashMap;
 
@@ -6,11 +7,6 @@ use serde_json::{Value, self};
 
 use std::io::{Read, Write};
 
-#[derive(Debug)]
-pub struct Language {
-    lang: Option<String>,
-    locale: Option<String>,
-}
 
 impl Default for Language {
     fn default() -> Self {
@@ -31,17 +27,6 @@ impl ToString for Language {
             None => "en-US".to_string(),
         }
     }
-}
-
-#[derive(Debug)]
-pub struct Response {
-    body: Body,
-    status: u16, // status code, not Status struct, as the messages should not be exposed to the user to change
-    cookies: Option<HashMap<String, String>>,
-    resource: String,
-
-    language: Language,
-    headers: Option<HashMap<String, Value>>,
 }
 
 impl Response {
@@ -89,11 +74,7 @@ impl Response {
         let validation = self.validate();
 
         let status = match validation {
-            Ok(_) => Status {
-                code: self.status,
-                formal_message: "OK".to_string(),
-                human_message: "Request was successful".to_string(),
-            },
+            Ok(_) => categorise(self.status),
             Err(message) => Status {
                 code: 500,
                 formal_message: "Internal Server Error".to_string(),
@@ -142,6 +123,7 @@ pub struct Server {
 }
 
 impl Server {
+    /// instantiates a new server, with given name, host and port
     pub fn new<T, U>(name: T, host: U, port: u16) -> Server 
     where T: ToString, U: ToString {
         Server {
@@ -154,14 +136,17 @@ impl Server {
         }
     }
 
+    /// adds a route to the server, with the given handler
     pub fn route<T: ToString>(&mut self, route: T, handler: fn(JsontpRequest) -> Response) {
         self.route_handlers.insert(route.to_string(), handler);
     }
 
+    /// adds an error handler to the server, with the given code
     pub fn error(&mut self, code: u16, handler: fn(JsontpRequest) -> Response) {
         self.error_handlers.insert(code, handler);
     }
 
+    /// starts the server on the given host and port
     pub fn start(self) {
         let listener = std::net::TcpListener::bind(format!("{}:{}", self.host, self.port)).unwrap();
 
@@ -184,7 +169,6 @@ impl Server {
 
                 let mut buf_reader = std::io::BufReader::new(&stream);
 
-
                 loop {
                     let mut buffer = [0; 1024];
                     let bytes_read = buf_reader.read(&mut buffer).unwrap();
@@ -195,7 +179,6 @@ impl Server {
                         break;
                     }   
                 }
-
 
                 println!("{}", request_string);
 
