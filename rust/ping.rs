@@ -7,12 +7,11 @@ fn main() {
     {
         "jsontp": "1.0",
         "type": "request",
-        "resource": "/path/to/resource",
+        "resource": "/",
         "method": "GET",
     
         "headers": {
-            "key1": "value1",
-            "accept-language": "de-DE"
+            "key1": "value1"
         },
     
         "body": {

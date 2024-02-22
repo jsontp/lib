@@ -57,21 +57,9 @@ impl Response {
             return Err("Status code is not in the range 100-599".to_string());
         }
 
-        if !self.body.contains_key("content"){
-            return Err("Body does not contain a content field".to_string());
-        }
-
-        if !self.body.contains_key("encoding"){
-            return Err("Body does not contain an encoding field".to_string());
-        }
-
-        if self.body.get("encoding").unwrap_or(&Value::Null).as_str().unwrap_or("").is_empty() {
-            return Err("Body encoding is empty".to_string());
-        }
-
         let allowed_encodings = vec!["gzip", "deflate", "br", "identity"];
 
-        if !allowed_encodings.contains(&self.body.get("encoding").unwrap_or(&Value::Null).as_str().unwrap_or("".to_string().as_str())) {
+        if !allowed_encodings.contains(&self.body.encoding.as_str()) {
             return Err("Body encoding is not allowed".to_string());
         }
 
@@ -116,8 +104,8 @@ impl Response {
             resource: self.resource.clone(),
             headers: HashMap::new(),
             body: Body {
-                content: self.body.get("content").unwrap().clone().to_string(),
-                encoding: self.body.get("encoding").unwrap().clone().to_string(),
+                content: self.body.content.clone(),
+                encoding: self.body.encoding.clone(),
                 other: HashMap::new(),
             },
         }
@@ -139,8 +127,8 @@ impl Server {
     pub fn new<T, U>(name: T, host: U, port: u16) -> Server 
     where T: ToString, U: ToString {
         Server {
-            name,
-            host,
+            name: name.to_string(),
+            host: host.to_string(),
             version: "1.0-rc1".to_string(),
             port,
             route_handlers: HashMap::new(),
@@ -167,15 +155,15 @@ impl Server {
             let server = self.clone();
 
             std::thread::spawn(move || {
-
                 if let Err(e) = stream {
                     eprintln!("failed: {}", e);
                     return;
                 }
 
+                println!("Handling connection from {}", stream.as_ref().unwrap().peer_addr().unwrap());
+
                 let mut stream = stream.unwrap();
 
-                println!("Connection established!");
 
                 let mut request_string = String::new();
 
@@ -192,11 +180,9 @@ impl Server {
                     }   
                 }
 
-                println!("{}", request_string);
-
                 let request: JsontpRequest = serde_json::from_str(&request_string).unwrap();
 
-                let mut response = match server.route_handlers.get(&request.resource) {
+                let response = match server.route_handlers.get(&request.resource) {
                     Some(handler) => handler(request).to_jsontp_response(),
                     None => JsontpResponse {
                         jsontp: "1.0-rc1".to_string(),
@@ -219,6 +205,8 @@ impl Server {
                 let response_string = serde_json::to_string(&response).unwrap();
 
                 stream.write(response_string.as_bytes()).unwrap();
+
+                println!("Handled connection from {}, with response: {} {}", stream.peer_addr().unwrap(), response.status.code, response.status.formal_message);
             }
             );
         }

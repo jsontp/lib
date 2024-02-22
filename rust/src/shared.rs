@@ -23,10 +23,10 @@ pub struct Response {
 /// The body of a jsontp request or response, containing the content, encoding and other fields
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Body {
-    pub(crate) content: String,
-    pub(crate) encoding: String,
+    pub content: String,
+    pub encoding: String,
     #[serde(flatten)]
-    pub(crate) other: HashMap<String, Value>,
+    pub other: HashMap<String, Value>,
 }
 
 impl Body {
@@ -60,7 +60,7 @@ pub struct JsontpRequest {
 }
 
 /// The status of a jsontp response, containing the code, formal message and human message
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Status {
     pub code: u16,
     #[serde(rename = "formal-message")]
@@ -69,16 +69,22 @@ pub struct Status {
     pub human_message: String,
 }
 
+impl core::fmt::Display for Status {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{} {}", self.code, self.formal_message)
+    }
+}
+
 /// The jsontp response, specified by the standard
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsontpResponse {
-    pub(crate) jsontp: String,
+    pub jsontp: String,
     #[serde(rename = "type")]
     pub(crate) type_of_response: String,
-    pub(crate) status: Status,
-    pub(crate) resource: String,
-    pub(crate) headers: HashMap<String, Value>,
-    pub(crate) body: Body,
+    pub status: Status,
+    pub resource: String,
+    pub headers: HashMap<String, Value>,
+    pub body: Body,
 }
 
 impl JsontpRequest {

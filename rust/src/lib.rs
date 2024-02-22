@@ -1,5 +1,6 @@
-pub mod shared;
+pub(crate) mod shared;
 pub mod server;
+pub mod client;
 mod status;
 
 /// The prelude module re-exports the most commonly used items in this crate.
@@ -8,6 +9,9 @@ pub mod prelude {
     pub use crate::shared::*;
     pub use crate::server::*;
 
+    pub use serde_json::Value;
+}
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
@@ -15,6 +19,8 @@ pub fn add(left: usize, right: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use prelude::*;
 
     #[tokio::test]
     async fn test_server() {
@@ -36,7 +42,18 @@ mod tests {
             server.start();
 
         println!("hello!");
+    }
 
+    #[tokio::test]
+    async fn test_client() {
+        let client = client::Request::new()
+            .method("GET")
+            .resource("/")
+            .header("key1", "value1")
+            .body("raw text to be sent", "gzip");
 
+        let response = client.send("localhost", 8080).unwrap();
+
+        println!("Server said: {} {}", response.status, response.body.content);
     }
 }
