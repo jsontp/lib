@@ -1,30 +1,36 @@
 pub(crate) mod shared;
-pub mod server;
-pub mod client;
+pub mod server_imp;
+pub mod client_imp;
 mod status;
 
-/// The prelude module re-exports the most commonly used items in this crate.
-/// It should be imported in all modules that use the jsontp crate.
-pub mod prelude {
+/// server prelude, containing all the types and traits needed to create a server
+pub mod server {
     pub use crate::shared::*;
-    pub use crate::server::*;
-
+    pub use crate::server_imp::*;
+    pub use crate::status::*;
     pub use serde_json::Value;
 }
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+/// client prelude, containing all the types and traits needed to create a client
+pub mod client {
+    pub use crate::shared::*;
+    pub use crate::client_imp::*;
+    pub use crate::status::*;
+    pub use serde_json::Value;
 }
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use prelude::*;
+    use server::*;
+
+    use client::*;
 
     #[tokio::test]
     async fn test_server() {
-            let mut server = server::Server::new("hey", "localhost", 8080);
+            let mut server = server_imp::Server::new("hey", "localhost", 8080);
 
             server.route(
                 "/".to_string(),
@@ -46,7 +52,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_client() {
-        let client = client::Request::new()
+        let client = Request::new()
             .method("GET")
             .resource("/")
             .header("key1", "value1")

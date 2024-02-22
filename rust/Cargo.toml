@@ -3,6 +3,13 @@ name = "jsontp"
 description = "The reference implementation of the JSONTP protocol in Rust"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/jsontp/lib"
+readme = "README.md"
+homepage = "https://github.com/jsontp/lib/blob/main/rust/README.md"
+documentation = "https://docs.rs/jsontp"
+keywords = ["jsontp", "ntp", "json", "protocol", "rust"]
+categories = ["network-programming", "web-programming", "data-structures", "date-and-time"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

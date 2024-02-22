@@ -1,6 +1,6 @@
 use crate::shared::Status;
 
-pub(crate) fn categorise(code: u16) -> Status {
+pub fn categorise(code: u16) -> Status {
     match code {
         100 => Status {
             code,

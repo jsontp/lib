@@ -3,10 +3,25 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
+/// The language of a jsontp request or response, containing the language and locale
 #[derive(Debug)]
 pub struct Language {
     pub(crate) lang: Option<String>,
     pub(crate) locale: Option<String>,
+}
+
+impl Language {
+    /// Create a new language with the given language and locale
+    pub fn new<T, U>(lang: T, locale: U) -> Language
+    where
+        T: ToString,
+        U: ToString,
+    {
+        Language {
+            lang: Some(lang.to_string()),
+            locale: Some(locale.to_string()),
+        }
+    }
 }
 
 #[derive(Debug)]
