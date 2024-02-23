@@ -50,8 +50,8 @@ impl Request {
     }
 
     /// Set a key in the body of the request
-    pub fn body_key<T: ToString, U: ToString>(mut self, key: T, value: U) -> Request {
-        self.inner.body.other .insert(key.to_string(), Value::String(value.to_string()));
+    pub fn body_key<T: ToString>(mut self, key: T, value: Value) -> Request {
+        self.inner.body.other .insert(key.to_string(), value);
         self
     }
 
