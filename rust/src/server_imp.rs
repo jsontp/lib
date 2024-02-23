@@ -103,11 +103,7 @@ impl Response {
             status,
             resource: self.resource.clone(),
             headers: HashMap::new(),
-            body: Body {
-                content: self.body.content.clone(),
-                encoding: self.body.encoding.clone(),
-                other: HashMap::new(),
-            },
+            body: self.body.clone(),
         }
     }
 }
