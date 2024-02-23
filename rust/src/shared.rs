@@ -68,10 +68,10 @@ pub struct JsontpRequest {
     pub(crate) jsontp: String,
     #[serde(rename = "type")]
     pub(crate) type_of_request: String,
-    pub(crate) method: String,
+    pub method: String,
     pub(crate) resource: String,
-    pub(crate) headers: HashMap<String, Value>,
-    pub(crate) body: Body,
+    pub headers: HashMap<String, Value>,
+    pub body: Body,
 }
 
 /// The status of a jsontp response, containing the code, formal message and human message
